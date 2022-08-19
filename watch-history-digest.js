@@ -9,6 +9,7 @@ const Video = require("./lib/video");
 const View = require("./lib/view");
 const checksum = require("./lib/checksum");
 
+const WATCH_HISTORY_INPUT = "Takeout/YouTube and YouTube Music/history/watch-history.html";
 const WATCH_HISTORY_DIGEST = "watch-history.digest";
 const WATCH_HISTORY_SHA1 = "watch-history.sha1";
 
@@ -38,14 +39,14 @@ class WatchHistoryDigest {
             previousHash = fs.readFileSync(WATCH_HISTORY_SHA1, "utf-8");
         }
 
-        const currentHash = await checksum(WATCH_HISTORY_DIGEST);
+        const currentHash = await checksum(WATCH_HISTORY_INPUT);
         let views;
 
         if (currentHash === previousHash) {
             views = WatchHistoryDigest.loadFromFile();
         } else {
             views = WatchHistoryDigest.parseFromTakeout();
-            await WatchHistoryDigest.saveToFile(views);
+            await WatchHistoryDigest.saveToFile(views, currentHash);
         }
 
         digest.process(views);
@@ -57,16 +58,16 @@ class WatchHistoryDigest {
         return lines.map(line => JSON.parse(line));
     }
 
-    static async saveToFile(views) {
+    static async saveToFile(views, hash) {
         const output = views.map(view => JSON.stringify(view)).join("\n");
         fs.writeFileSync(WATCH_HISTORY_DIGEST, output);
-        fs.writeFileSync(WATCH_HISTORY_SHA1, await checksum(WATCH_HISTORY_DIGEST));
+        fs.writeFileSync(WATCH_HISTORY_SHA1, hash);
     }
 
     static parseFromTakeout() {
         const views = [];
 
-        const historyFile = fs.readFileSync("Takeout/YouTube and YouTube Music/history/watch-history.html", "utf-8");
+        const historyFile = fs.readFileSync(WATCH_HISTORY_INPUT, "utf-8");
         const $ = cheerio.load(historyFile);
 
         const cells = $("body .mdl-grid .mdl-cell .mdl-grid");

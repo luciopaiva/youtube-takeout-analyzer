@@ -4,3 +4,6 @@
 /watch-history.digest
 /watch-history.sha1
 /*.csv
+/watch-later.json
+/watch-later.sha1
+/api.key
