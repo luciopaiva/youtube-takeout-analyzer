@@ -25,6 +25,8 @@ class WatchHistoryDigest {
     /** @type {HashMap<string, Video>} */
     videoByUrl = new HashMap();
     countByMonthYear = new Counter();
+    /** @type {View[]} */
+    views;
 
     static async load() {
         const digest = new WatchHistoryDigest();
@@ -132,6 +134,7 @@ class WatchHistoryDigest {
     }
 
     process(views) {
+        this.views = views;
         this.totalViewsCount = views.length;
 
         for (const /** @type {View} */ view of views) {
