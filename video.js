@@ -6,18 +6,20 @@ class Video {
     name;
     /** @type {Video} */
     channel;
-    /** @type {number} */
-    views;
 
     constructor(url, name, channel) {
         this.url = url;
         this.name = name;
         this.channel = channel;
-        this.views = 0;
+        this.viewDates = [];
     }
 
-    addView() {
-        this.views++;
+    addView(date) {
+        this.viewDates.push(date);
+    }
+
+    get views() {
+        return this.viewDates.length;
     }
 }
 
