@@ -15,7 +15,7 @@ const Digest = require("./watch-history-digest");
         const channelMatches = view.channelName && view.channelName.toLowerCase().includes(query);
         const videoMatches = view.videoName && view.videoName.toLowerCase().includes(query);
         if (channelMatches || videoMatches) {
-            console.info(`[${view.date}] ${view.channelName} - ${view.videoName}`);
+            console.info(`[${view.date}] ${view.channelName} - ${view.videoName} ${view.videoUrl}`);
         }
     }
 }))();

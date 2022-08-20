@@ -1,13 +1,12 @@
 
 const fs = require("fs");
 const moment = require("moment");
-const fetchVideoInfo = require("./lib/fetch-video-info");
+const fetchVideoInfos = require("./lib/fetch-video-info");
 const checksum = require("./lib/checksum");
 
 const WATCH_LATER_DIGEST = "watch-later.json";
 const WATCH_LATER_SHA1 = "watch-later.sha1";
 const WATCH_LATER_INPUT = "Takeout/YouTube and YouTube Music/playlists/Watch later.csv";
-const BULK_SIZE = 50;  // >50 returns HTTP 400
 
 class Digest {
 
@@ -71,18 +70,12 @@ class Digest {
     }
 
     printSummary() {
-        console.info(`Number of videos: ${this.videoIdsAndDates.length}`);
+        console.error(`Number of videos: ${this.videoIdsAndDates.length}`);
     }
 
     async fetchVideoInfos() {
-        const result = [];
-        for (let i = 0; i < this.videoIdsAndDates.length; i += BULK_SIZE) {
-            console.info(`Fetching videos ${i} to ${i + BULK_SIZE}`);
-            const ids = this.videoIdsAndDates.slice(i, i + BULK_SIZE).map(vad => vad[0]);
-            const bulk = await fetchVideoInfo(ids);
-            result.push(...bulk);
-        }
-        return result;
+        const ids = this.videoIdsAndDates.map(vad => vad[0]);
+        return await fetchVideoInfos(ids);
     }
 }
 

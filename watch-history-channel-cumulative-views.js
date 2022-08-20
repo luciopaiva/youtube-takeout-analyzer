@@ -3,19 +3,23 @@ const moment = require("moment");
 const HashMap = require("./lib/hashmap");
 const Counter = require("./lib/counter");
 const Digest = require("./watch-history-digest");
+const WatchHistoryCache = require("./lib/watch-history-cache");
+const fetchVideoInfos = require("./lib/fetch-video-info");
 
 function getChannelsList(views) {
     return [...new Set(views.map(v => v.channelName))];
 }
 
-function getChannelViewsByYearMonth(views) {
+function getChannelViewsByYearMonth(views, useDuration, cache) {
     const channelViewsByYearMonth = new HashMap();
 
     for (const view of views) {
         const yearMonth = moment(view.date).format("YYYY-MM");
         /** @type {Counter} */
         const channelCounts = channelViewsByYearMonth.computeIfAbsent(yearMonth, () => new Counter());
-        channelCounts.increment(view.channelName);
+        const id = getIdFromView(view);
+        const inc = useDuration ? cache.getVideoDurationInMinutes(id) : 1;
+        channelCounts.increment(view.channelName, inc);
     }
 
     return channelViewsByYearMonth;
@@ -71,13 +75,54 @@ function getViewsByDateAsc(digest) {
     return views;
 }
 
-((async function () {
+function getIdFromView(view) {
+    const m = view.videoUrl.match(/watch\?v=(.*)$/)
+    if (!m) {
+        console.error(`Could not find id for URL ${view.videoUrl}`);
+        process.exit(1);
+    }
+    return m[1];
+}
+
+async function loadVideoInfos(views) {
+    const ids = views.map(view => getIdFromView(view));
+
+    const cache = new WatchHistoryCache();
+
+    const missingIds = cache.findAllMissing(ids);
+
+    if (missingIds.length > 0) {
+        const videoInfos = await fetchVideoInfos(missingIds);
+        checkMissingIds(missingIds, videoInfos);
+        cache.add(videoInfos);
+        cache.persist();
+    }
+
+    return cache;
+}
+
+function checkMissingIds(missingIds, videoInfos) {
+    const missingSet = new Set(missingIds);
+    for (const info of videoInfos) {
+        missingSet.delete(info.id);
+    }
+    if (missingSet.size > 0) {
+        console.error(`The following ids are still missing: ${[...missingSet].join(", ")}`);
+    }
+}
+
+((async function (cmd) {
     const digest = await Digest.load();
     const views = getViewsByDateAsc(digest);
+
+    const useDuration = cmd === "duration";
+
+    const cache = useDuration && await loadVideoInfos(views);
+
     const channels = getChannelsList(views);
-    const channelViewsByYearMonth = getChannelViewsByYearMonth(views);
+    const channelViewsByYearMonth = getChannelViewsByYearMonth(views, useDuration, cache);
     accumulateViewsFromPreviousMonths(channels, channelViewsByYearMonth);
     const popularChannels = getMostPopularChannels(channelViewsByYearMonth);
 
     dump(popularChannels, channelViewsByYearMonth);
-}))();
+}))(...process.argv.slice(2));
