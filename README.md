@@ -34,7 +34,8 @@ The following scripts will analyze your watch history data:
 - `node watch-history-top-channels` dumps the list of channels most watched by you;
 - `node watch-history-top-videos` dumps the list of videos most watched by you;
 - `node watch-history-channel-progression` finds the top K most watched channels in your history data and then dumps a CSV file showing your how many views you had on each channel throughout time. This is an interesting analysis to show your channel watching habits as years go by;
-- `node watch-history-channel <channel-name>` receives a channel name (can be a partial match) as input and outputs the whole list of videos you watched on that channel.
+- `node watch-history-channel <channel-name>` receives a channel name (can be a partial match) as input and outputs the whole list of videos you watched on that channel;
+- `node watch-history-channel-cumulative-views` similar to the channel progression script, but accumulates views from previous months so you can see the total number of views each channel has as time progresses. This is the ideal input for bar chart race generators like [alienart.io](https://alienart.io/).
 
 ### Watch later
 
