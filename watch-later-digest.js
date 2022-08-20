@@ -40,6 +40,14 @@ class Digest {
         return digest;
     }
 
+    mapVideosById() {
+        const videosById = new Map();
+        for (const videoInfo of this.videoInfos) {
+            videosById.set(videoInfo.id, videoInfo);
+        }
+        return videosById;
+    }
+
     static loadFromFile() {
         return JSON.parse(fs.readFileSync(WATCH_LATER_DIGEST, "utf-8"));
     }
@@ -80,4 +88,6 @@ class Digest {
 
 if (require.main === module) {
     Digest.load().then(async digest => digest.printSummary());
+} else {
+    module.exports = Digest;
 }
