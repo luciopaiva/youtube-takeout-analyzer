@@ -35,7 +35,8 @@ The following scripts will analyze your watch history data:
 - `node watch-history-top-videos` dumps the list of videos most watched by you;
 - `node watch-history-channel-progression` finds the top K most watched channels in your history data and then dumps a CSV file showing your how many views you had on each channel throughout time. This is an interesting analysis to show your channel watching habits as years go by;
 - `node watch-history-channel <channel-name>` receives a channel name (can be a partial match) as input and outputs the whole list of videos you watched on that channel;
-- `node watch-history-channel-cumulative-views` similar to the channel progression script, but accumulates views from previous months so you can see the total number of views each channel has as time progresses. This is the ideal input for bar chart race generators like [alienart.io](https://alienart.io/).
+- `node watch-history-channel-cumulative-views` similar to the channel progression script, but accumulates views from previous months so you can see the total number of views each channel has as time progresses. This is the ideal input for bar chart race generators like [alienart.io](https://alienart.io/);
+- `node watch-history-channel-cumulative-views duration` this is a variation of the above where channels are ranked by minutes watched, not views. More on that in the bar chart race section.
 
 ### Watch later
 
@@ -53,3 +54,9 @@ After that, the following scripts can be used:
 
 - `node watch-later-top-channels` lists the most popular channels on your watch later list;
 - `node watch-later-csv` dumps a CSV file containing all the videos in your watch later list so you can take a good look at them.
+
+### Bar chart race
+
+The `node watch-history-channel-cumulative-views` commands offers an output that is suitable for bar chart race generators like [alienart.io](https://alienart.io/).
+
+The problem I noticed was that if you use the `duration` modifier, long live streams (e.g.: ISS live) completely dominate the chart. I tried pruning channels with 100k minutes of visualization (via the `PRUNE_CHANNELS_WITH_HUGE_DURATIONS` flag), but it's hard to prune all the unwanted channels.

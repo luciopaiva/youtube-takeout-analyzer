@@ -6,11 +6,13 @@ const Digest = require("./watch-history-digest");
 const WatchHistoryCache = require("./lib/watch-history-cache");
 const fetchVideoInfos = require("./lib/fetch-video-info");
 
+const PRUNE_CHANNELS_WITH_HUGE_DURATIONS = false;
+
 function getChannelsList(views) {
     return [...new Set(views.map(v => v.channelName))];
 }
 
-function getChannelViewsByYearMonth(views, useDuration, cache) {
+function getChannelViewsByYearMonth(views, cache) {
     const channelViewsByYearMonth = new HashMap();
 
     for (const view of views) {
@@ -18,7 +20,7 @@ function getChannelViewsByYearMonth(views, useDuration, cache) {
         /** @type {Counter} */
         const channelCounts = channelViewsByYearMonth.computeIfAbsent(yearMonth, () => new Counter());
         const id = getIdFromView(view);
-        const inc = useDuration ? cache.getVideoDurationInMinutes(id) : 1;
+        const inc = cache ? cache.getVideoDurationInMinutes(id) : 1;
         channelCounts.increment(view.channelName, inc);
     }
 
@@ -56,6 +58,24 @@ function getMostPopularChannels(channelViewsByYearMonth, K = 10) {
     const popularChannels = [...popularChannelsSet];
     popularChannels.sort((a, b) => a.localeCompare(b));
     return popularChannels;
+}
+
+function removeChannelsWithHugeDurations(channels, channelViewsByYearMonth) {
+    const channelSet = new Set(channels);
+    const channelViews = getChannelViewsFromLastMonth(channelViewsByYearMonth);
+    for (const [channel, count] of channelViews.entries()) {
+        if (count > 100_000) {
+            channelSet.delete(channel);
+        }
+    }
+    return [...channelSet];
+}
+
+function getChannelViewsFromLastMonth(channelViewsByYearMonth) {
+    const months = [...channelViewsByYearMonth.keys()];
+    months.sort((a, b) => a.localeCompare(b));
+    const lastMonth = months[months.length - 1];
+    return channelViewsByYearMonth.get(lastMonth);
 }
 
 function dump(channels, channelViewsByYearMonth) {
@@ -120,9 +140,12 @@ function checkMissingIds(missingIds, videoInfos) {
     const cache = useDuration && await loadVideoInfos(views);
 
     const channels = getChannelsList(views);
-    const channelViewsByYearMonth = getChannelViewsByYearMonth(views, useDuration, cache);
+    const channelViewsByYearMonth = getChannelViewsByYearMonth(views, cache);
     accumulateViewsFromPreviousMonths(channels, channelViewsByYearMonth);
-    const popularChannels = getMostPopularChannels(channelViewsByYearMonth);
+    let popularChannels = getMostPopularChannels(channelViewsByYearMonth);
+    if (useDuration && PRUNE_CHANNELS_WITH_HUGE_DURATIONS) {
+        popularChannels = removeChannelsWithHugeDurations(popularChannels, channelViewsByYearMonth);
+    }
 
     dump(popularChannels, channelViewsByYearMonth);
 }))(...process.argv.slice(2));
