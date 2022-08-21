@@ -7,15 +7,20 @@ const WatchHistoryCache = require("./lib/watch-history-cache");
 const fetchVideoInfos = require("./lib/fetch-video-info");
 
 const CAP_VIEWS_IN_MINUTES_AT = 3 * 60;
+const channelBlockList = [];
 
 function getChannelsList(views) {
-    return [...new Set(views.map(v => v.channelName))];
+    const channels = [...new Set(views.map(v => v.channelName))];
+    return channels.filter(c => !channelBlockList.some(blocked => c.includes(blocked)));
 }
 
-function getChannelViewsByYearMonth(views, cache) {
+function getChannelViewsByYearMonth(views, cache, channelSet) {
     const channelViewsByYearMonth = new HashMap();
 
     for (const view of views) {
+        if (!channelSet.has(view.channelName)) {
+            continue;
+        }
         const yearMonth = moment(view.date).format("YYYY-MM");
         /** @type {Counter} */
         const channelCounts = channelViewsByYearMonth.computeIfAbsent(yearMonth, () => new Counter());
@@ -122,7 +127,8 @@ function checkMissingIds(missingIds, videoInfos) {
     const cache = useDuration && await loadVideoInfos(views);
 
     const channels = getChannelsList(views);
-    const channelViewsByYearMonth = getChannelViewsByYearMonth(views, cache);
+    const channelSet = new Set(channels);
+    const channelViewsByYearMonth = getChannelViewsByYearMonth(views, cache, channelSet);
     accumulateViewsFromPreviousMonths(channels, channelViewsByYearMonth);
     let popularChannels = getMostPopularChannels(channelViewsByYearMonth);
 
