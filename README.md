@@ -59,4 +59,12 @@ After that, the following scripts can be used:
 
 The `node watch-history-channel-cumulative-views` commands offers an output that is suitable for bar chart race generators like [alienart.io](https://alienart.io/).
 
-The problem I noticed was that if you use the `duration` modifier, long live streams (e.g.: ISS live) completely dominate the chart. I tried pruning channels with 100k minutes of visualization (via the `PRUNE_CHANNELS_WITH_HUGE_DURATIONS` flag), but it's hard to prune all the unwanted channels.
+The `duration` modifier is probably the most interesting, as it will show approximately how many minutes you spent watching each channel. The final number is not exact because YouTube does not store how many minutes of each video you actually watched. The script simply uses the total duration of each video.
+
+Using the video duration poses a problem because some channels stream live for hours and hours non-stop. If you've watched one of those channels, it will probably dominate the output. To circumvent that problem, the script caps videos durations at a maximum number of minutes (check the constant `CAP_VIEWS_IN_MINUTES_AT`).
+
+The output of the script can be directly saved to a csv file like this:
+
+    node watch-history-channel-cumulative-views duration > watch-history-channel-cumulative-minutes.csv
+
+If you are using alienart.io, you may want to convert the file from UTF-8 to ISO-8859-1 first, otherwise channel names with diacritics will appear broken in the video.

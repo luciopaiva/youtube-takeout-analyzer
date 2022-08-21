@@ -6,7 +6,7 @@ const Digest = require("./watch-history-digest");
 const WatchHistoryCache = require("./lib/watch-history-cache");
 const fetchVideoInfos = require("./lib/fetch-video-info");
 
-const PRUNE_CHANNELS_WITH_HUGE_DURATIONS = false;
+const CAP_VIEWS_IN_MINUTES_AT = 3 * 60;
 
 function getChannelsList(views) {
     return [...new Set(views.map(v => v.channelName))];
@@ -20,7 +20,7 @@ function getChannelViewsByYearMonth(views, cache) {
         /** @type {Counter} */
         const channelCounts = channelViewsByYearMonth.computeIfAbsent(yearMonth, () => new Counter());
         const id = getIdFromView(view);
-        const inc = cache ? cache.getVideoDurationInMinutes(id) : 1;
+        const inc = cache ? cache.getVideoDurationInMinutes(id, CAP_VIEWS_IN_MINUTES_AT) : 1;
         channelCounts.increment(view.channelName, inc);
     }
 
@@ -60,30 +60,12 @@ function getMostPopularChannels(channelViewsByYearMonth, K = 10) {
     return popularChannels;
 }
 
-function removeChannelsWithHugeDurations(channels, channelViewsByYearMonth) {
-    const channelSet = new Set(channels);
-    const channelViews = getChannelViewsFromLastMonth(channelViewsByYearMonth);
-    for (const [channel, count] of channelViews.entries()) {
-        if (count > 100_000) {
-            channelSet.delete(channel);
-        }
-    }
-    return [...channelSet];
-}
-
-function getChannelViewsFromLastMonth(channelViewsByYearMonth) {
-    const months = [...channelViewsByYearMonth.keys()];
-    months.sort((a, b) => a.localeCompare(b));
-    const lastMonth = months[months.length - 1];
-    return channelViewsByYearMonth.get(lastMonth);
-}
-
 function dump(channels, channelViewsByYearMonth) {
     console.info(["year-month", ...channels].join(","));
     for (const [yearMonth, channelCounts] of channelViewsByYearMonth.entries()) {
         const line = [yearMonth];
         for (const channel of channels) {
-            line.push(channelCounts.get(channel));
+            line.push(channelCounts.get(channel).toFixed(1));
         }
         console.info(line.join(","));
     }
@@ -143,9 +125,6 @@ function checkMissingIds(missingIds, videoInfos) {
     const channelViewsByYearMonth = getChannelViewsByYearMonth(views, cache);
     accumulateViewsFromPreviousMonths(channels, channelViewsByYearMonth);
     let popularChannels = getMostPopularChannels(channelViewsByYearMonth);
-    if (useDuration && PRUNE_CHANNELS_WITH_HUGE_DURATIONS) {
-        popularChannels = removeChannelsWithHugeDurations(popularChannels, channelViewsByYearMonth);
-    }
 
     dump(popularChannels, channelViewsByYearMonth);
 }))(...process.argv.slice(2));
