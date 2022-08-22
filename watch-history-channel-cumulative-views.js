@@ -5,6 +5,7 @@ const Counter = require("./lib/counter");
 const Digest = require("./watch-history-digest");
 const WatchHistoryCache = require("./lib/watch-history-cache");
 const fetchVideoInfos = require("./lib/fetch-video-info");
+const ChannelService = require("./lib/channel-service");
 
 const CAP_VIEWS_IN_MINUTES_AT = 3 * 60;
 const channelBlockList = [];
@@ -65,8 +66,9 @@ function getMostPopularChannels(channelViewsByYearMonth, K = 10) {
     return popularChannels;
 }
 
-function dump(channels, channelViewsByYearMonth) {
+function dump(channels, thumbs, channelViewsByYearMonth) {
     console.info(["year-month", ...channels].join(","));
+    console.info(["Image", ...thumbs].join(","));
     for (const [yearMonth, channelCounts] of channelViewsByYearMonth.entries()) {
         const line = [yearMonth];
         for (const channel of channels) {
@@ -118,6 +120,29 @@ function checkMissingIds(missingIds, videoInfos) {
     }
 }
 
+/**
+ *
+ * @param {string[]} channels
+ * @param {WatchHistoryCache} cache
+ * @returns {Promise<string[]>}
+ */
+async function loadChannelThumbs(channels, cache) {
+    const channelIdsByName = mapChannelIdsByName(cache);
+    const idsInOrder = channels.map(c => channelIdsByName.get(c));
+
+    const service = new ChannelService();
+    const idsAndChannels = await service.getChannels(idsInOrder);
+    return idsAndChannels.map(([_, c]) => service.getThumbUrl(c));
+}
+
+function mapChannelIdsByName(cache) {
+    const videos = cache.values();
+    const namesAndIds = videos.map(v => [
+        v?.snippet?.channelTitle,
+        v?.snippet?.channelId]);
+    return new Map(namesAndIds);
+}
+
 ((async function (cmd) {
     const digest = await Digest.load();
     const views = getViewsByDateAsc(digest);
@@ -128,9 +153,12 @@ function checkMissingIds(missingIds, videoInfos) {
 
     const channels = getChannelsList(views);
     const channelSet = new Set(channels);
+
     const channelViewsByYearMonth = getChannelViewsByYearMonth(views, cache, channelSet);
     accumulateViewsFromPreviousMonths(channels, channelViewsByYearMonth);
     let popularChannels = getMostPopularChannels(channelViewsByYearMonth);
 
-    dump(popularChannels, channelViewsByYearMonth);
+    const thumbs = await loadChannelThumbs(popularChannels, cache);
+
+    dump(popularChannels, thumbs, channelViewsByYearMonth);
 }))(...process.argv.slice(2));
