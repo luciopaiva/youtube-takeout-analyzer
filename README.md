@@ -67,4 +67,6 @@ The output of the script can be directly saved to a csv file like this:
 
     node watch-history-channel-cumulative-views duration > watch-history-channel-cumulative-minutes.csv
 
+The first row has the channel names and the second one the channel thumbnail URLs. The following rows are the actual duration data.
+
 If you are using alienart.io, you may want to convert the file from UTF-8 to ISO-8859-1 first, otherwise channel names with diacritics will appear broken in the video.
